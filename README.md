@@ -14,11 +14,8 @@ This is part of the tweaks I'm developing for many existing wlr configuration ut
   - Refresh rate
 - Makes clean, easy to understand layouts, with no negative values of random offsets `</monk>`
 
-## Video / Demo
+<img width="2274" height="1316" alt="image" src="https://github.com/user-attachments/assets/918702a7-4177-401f-8dc2-4899491ce135" />
 
-A bit outdated, but still relevant.
-
-[![Video](https://img.youtube.com/vi/bJxVIu9cMzg/0.jpg)](https://www.youtube.com/watch?v=bJxVIu9cMzg)
 
 ## Requires
 
