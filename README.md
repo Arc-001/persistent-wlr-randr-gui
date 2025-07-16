@@ -1,8 +1,8 @@
-# Wlr layout UI
+# Persistent wlr-randr GUI
 
-An simple GUI to setup the screens layout.
-Works best on Hyprland but should support most systems in a slightly degraded way
-(Wayland and Xorg are supported via 3rd party applications)
+An simple GUI to setup the screens layout based on wlr-layout-ui, providing the functionality it offers to wlr-randr.
+
+This is part of the tweaks I'm developing for many existing wlr configuration utilities so that they can be bundled into something capable of configuring any WLR or Smithay based compositor (but will primarily be tested via niri)
 
 ## Features
 
@@ -13,9 +13,6 @@ Works best on Hyprland but should support most systems in a slightly degraded wa
   - Resolution
   - Refresh rate
 - Makes clean, easy to understand layouts, with no negative values of random offsets `</monk>`
-
-> [!note]
-> Non Hyprland should work without screen rotation or scaling support
 
 ## Video / Demo
 
@@ -35,12 +32,6 @@ A bit outdated, but still relevant.
   - xrandr (for X11 / Xorg)
 
 ## Installation
-
-Check your distro for the package:
-
-[![Packaging status](https://repology.org/badge/vertical-allrepos/wlr-layout-ui.svg)](https://repology.org/project/wlr-layout-ui/versions)
-
-or install with pip in a virtual environment:
 
 ```bash
 python -m venv myenv
@@ -83,6 +74,10 @@ Applies the first profile (in alphabetical order) matching the set of monitors w
 ```bash
 wlrlui -m
 ```
+
+It is highly recommended that you add this to a .desktop file under /etc/xdg/autostart
+
+Other options are to create an appropriate systemd file, or to make it start automatically from your compositor's config file.
 
 ### GUI shortcuts
 
