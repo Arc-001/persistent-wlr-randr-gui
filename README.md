@@ -26,17 +26,22 @@ A bit outdated, but still relevant.
   - pyglet
   - tomli
   - tomli-w
-- One of:
-  - Hyprland >= 0.37
-  - wlr-randr (for other wayland systems)
-  - xrandr (for X11 / Xorg)
+  - poetry
+  - pipx
+- wlr-randr
+
+## Building
+
+1. `git clone https://github.com/alicealysia/persistent-wlr-randr-gui/`
+2. `cd persistent-wlr-randr-gui`
+3. `poetry install`
+4. `poetry build`
 
 ## Installation
 
-```bash
-python -m venv myenv
-./myenv/bin/pip install wlr-layout-ui
-```
+1. Either download the latest release or build the whl yourself
+2. `pipx install ~/path/to/persistent-wlr-randr-ui-2.0.0a0.tar.gz`
+3. it's also recommended that you copy the file "wlr-layout-ui.desktop" to ~/.local/share/applications
 
 This will create a "myenv" folder with the app installed.
 You will need to run the app with the full path to it (/path/to/myenv/bin/wlrlui).

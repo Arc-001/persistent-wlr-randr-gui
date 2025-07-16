@@ -72,7 +72,7 @@ class GuiScreen(Widget):
         color = self.drag_color if self.dragging else self.color
         if self.screen.active:
             return color
-        return [color[0] // 3, color[1] // 3, color[2] // 3, color[3]]
+        return [color[0] // 3, color[1] // 3, color[2] // 3, color[3]]  # type: ignore
 
     @property
     def statusInfo(self):
@@ -99,14 +99,8 @@ class GuiScreen(Widget):
         self.target_rect.x = x
         self.rect.y = y
         self.target_rect.y = y
-        self.cur_border = 2.0
 
     def draw(self, cursor):
-        if self.highlighted and self.cur_border <= 9:
-            self.cur_border += 0.2
-        if not self.highlighted and self.cur_border >= 2:
-            self.cur_border -= 0.2
-
         if self.rect != self.target_rect:
             self._animation_step()
 
@@ -126,8 +120,8 @@ class GuiScreen(Widget):
             self.rect.y,
             self.rect.width,
             self.rect.height,
-            border=int(self.cur_border),
-            color=color,
+            border=9 if self.highlighted else 2,
+            color=color,  # type: ignore
             border_color=border_color,
         ).draw()
         # Render the screen uid as text

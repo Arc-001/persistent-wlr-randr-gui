@@ -82,7 +82,7 @@ class _Box(Widget):
         self.rect.height = self.totalpadding
         self.widgets = []
         for w in widgets:
-            self.add(w)
+            self.add(w)  # type: ignore
 
     def __repr__(self):
         return f"<Box = {self.widgets}>"

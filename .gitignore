@@ -1,0 +1,4 @@
+src/wlr_layout_ui/__pycache__
+dist
+.bacon-locations
+venv

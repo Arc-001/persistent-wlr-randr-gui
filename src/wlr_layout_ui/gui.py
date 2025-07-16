@@ -9,11 +9,10 @@ import pyglet
 from .displaywidget import GuiScreen
 from .profiles import load_profiles, save_profile
 from .screens import displayInfo, load
-from .settings import ALLOW_DESELECT, FONT, LEGACY, PROG_NAME, UI_RATIO, WINDOW_MARGIN, reload_pre_commands
+from .settings import ALLOW_DESELECT, FONT, PROG_NAME, UI_RATIO, WINDOW_MARGIN, reload_pre_commands
 from .utils import (
     Rect,
     compute_bounding_box,
-    config,
     find_matching_mode,
     get_screen_size,
     make_command,
@@ -61,7 +60,7 @@ class UI(pyglet.window.Window):
         main_but_style = Style(color=(255, 185, 50))
         p_new_but = Button(
             ref_rect.copy(),
-            label="Create",
+            label="Save new",
             style=s_but_style,
             action=lambda: self.set_text_input(self.action_save_new_profile),
         )
@@ -73,7 +72,7 @@ class UI(pyglet.window.Window):
         )
         p_load_but = Button(
             ref_rect.copy(),
-            label="Load/Reset",
+            label="Load",
             style=act_but_style,
             action=self.action_load_selected_profile,
         )
@@ -145,7 +144,7 @@ class UI(pyglet.window.Window):
             onchange=self.action_update_rotation,
             # invert=True,
         )
-        ref_rect.width = but_w // 1.5
+        ref_rect.width = (int)(but_w // 1.5)
         self.scale_ratio = Dropdown(
             ref_rect.copy(),
             label="Scale",
@@ -175,9 +174,8 @@ class UI(pyglet.window.Window):
             self.resolutions,
             self.freqs,
         ]
-        if config.get("hyprland"):
-            base_widgets.append(self.rotation)
-            base_widgets.append(self.scale_ratio)
+        base_widgets.append(self.rotation)
+        base_widgets.append(self.scale_ratio)
 
         self.settings_box = HBox(widgets=base_widgets)
         self.require_selected_item.add(self.settings_box)
@@ -198,14 +196,12 @@ class UI(pyglet.window.Window):
         self.load_screens()
         # Ensure correct positioning
         self.on_resize(width, height)
-        self.set_current_modes_as_ref()
+        # self.set_current_modes_as_ref()
 
-    def set_current_modes_as_ref(self):
         """Set original cmd to allow reverting the selected mode."""
         self.original_cmd = make_command(
             [s.screen for s in self.gui_screens],
-            [s.rect.scaled(UI_RATIO) for s in self.gui_screens],
-            not LEGACY,
+            [s.rect.scaled(UI_RATIO) for s in self.gui_screens]
         )
 
     @property
@@ -246,9 +242,9 @@ class UI(pyglet.window.Window):
                 w, h = get_screen_size(screen, scale=UI_RATIO)
                 rect = Rect(
                     int(x / UI_RATIO),
-                    -int(y / UI_RATIO) - h,
-                    w,
-                    h,
+                    (int)(-int(y / UI_RATIO) - h),
+                    (int)(w),
+                    (int)(h),
                 )
             else:
                 rect = Rect(
@@ -373,7 +369,7 @@ class UI(pyglet.window.Window):
             if symbol == KEY_RETURN:
                 if self.confirmation_needed:
                     self.confirmation_needed = False
-                    self.set_current_modes_as_ref()
+                    # self.set_current_modes_as_ref()
                 else:
                     self.action_save_layout()
             elif symbol == KEY_ESCAPE and self.confirmation_needed:
@@ -471,7 +467,7 @@ class UI(pyglet.window.Window):
                 color=(50 + int(200 * (1.0 - ratio)), int(200 * ratio), 100, 255),
             ).draw()
             if getattr(self, "_confirm_labels", None):
-                lbl1, lbl2 = self._confirm_labels
+                lbl1, lbl2 = self._confirm_labels  # type: ignore
             else:
                 lbl1 = pyglet.text.HTMLLabel(
                     "Press <b>ENTER</b>",
@@ -494,16 +490,16 @@ class UI(pyglet.window.Window):
     def draw_text_input(self):
         """Draw the text input."""
         _w, h = self.get_size()
-        pyglet.text.Label("Profile name: ", font_size=24, x=10, y=h // 2 + 40, align="left").draw()
+        pyglet.text.Label("Profile name: ", font_size=24, x=10, y=h // 2 + 40, align="left").draw()  # type: ignore
         text = self.text_input
         if int(time.time() * 1.5) % 2:
-            text += "_"
+            text += "_"  # type: ignore
         pyglet.text.Label(
-            text,
+            text,  # type: ignore
             font_size=24,
             x=WINDOW_MARGIN,
             y=h // 2,
-            align="left",
+            align="left",  # type: ignore
         ).draw()
 
     def _can_draw(self, widget):
@@ -584,7 +580,6 @@ class UI(pyglet.window.Window):
         for rect, gs in zip(screens_rect, self.gui_screens):
             assert gs.screen.mode
             ret.append({
-                "name": gs.screen.name,
                 "active": gs.screen.active,
                 "width": gs.screen.mode.width,
                 "height": gs.screen.mode.height,
@@ -631,7 +626,7 @@ class UI(pyglet.window.Window):
                 info = screen_info.copy()
                 found.screen.transform = info.get("transform", 0)
                 w, h = get_screen_size(found.screen, scale=info.get("scale", 1))
-                rect = Rect(info["x"], -info["y"] - h, w, h)
+                rect = Rect(info["x"], -info["y"] - h, (int)(w), (int)(h))
                 srect = rect.scaled(1 / UI_RATIO)
                 info.pop("uid")
                 found.screen.active = info.pop("active")
@@ -665,7 +660,6 @@ class UI(pyglet.window.Window):
         cmd = make_command(
             [s.screen for s in self.gui_screens],
             [s.rect.scaled(UI_RATIO) for s in self.gui_screens],
-            not LEGACY,
         )
         if os.system(cmd):
             self.set_error("Failed applying the layout")
@@ -697,8 +691,8 @@ class UI(pyglet.window.Window):
         assert self.selected_item
         screen = self.selected_item.screen
         screen.mode = find_matching_mode(screen.available, self.resolutions.get_value(), self.freqs.get_value())
-        self.selected_item.target_rect.width = screen.mode.width // UI_RATIO
-        self.selected_item.target_rect.height = screen.mode.height // UI_RATIO
+        self.selected_item.target_rect.width = screen.mode.width // UI_RATIO  # type: ignore
+        self.selected_item.target_rect.height = screen.mode.height // UI_RATIO  # type: ignore
 
     def action_select_screen(self, screen):
         """Select a screen."""

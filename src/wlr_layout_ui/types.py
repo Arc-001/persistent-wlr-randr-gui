@@ -1,5 +1,4 @@
 from dataclasses import dataclass, field
-from typing import Tuple
 
 
 @dataclass
@@ -9,7 +8,7 @@ class Mode:
     freq: float
 
     def __repr__(self):
-        return "%dx%d@%.2fHz" % (self.width, self.height, self.freq)
+        return "%dx%d@%.2fHz" % (self.width, self.height, self.freq)  # noqa: UP031
 
 
 @dataclass
@@ -17,8 +16,8 @@ class Screen:
     uid: str
     name: str
     active: bool = False
-    position: Tuple[int, int] = (0, 0)
-    mode: None | Mode = None
+    position: tuple[int, int] = (0, 0)
+    mode: Mode | None = None
     scale: float = 1
     available: list[Mode] = field(default_factory=list)
     transform: int = 0
@@ -35,7 +34,7 @@ class Rect:  # {{{
     height: int
 
     def __hash__(self):
-        return int("%d%d%d%d" % self.asTuple())
+        return int("%d%d%d%d" % self.asTuple())  # noqa: UP031
 
     @property
     def topleft(self):

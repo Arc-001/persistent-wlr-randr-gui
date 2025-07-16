@@ -1,10 +1,10 @@
 [tool.poetry]
-name = "wlr-layout-ui"
-version = "1.6.16"
-description = "A tiny GUI to configure screen layouts on wayland"
-authors = ["fdev31 <fdev31@gmail.com>"]
+name = "persistent-wlr-randr-ui"
+version = "2.0.0a"
+description = "A tiny GUI to configure screen layouts on wlroots and smithay based compositors"
+authors = ["Alice Alysia"]
 readme = "README.md"
-homepage = "https://github.com/fdev31/wlr-layout-ui"
+homepage = "https://github.com/alicealysia/persistent-wlr-randr-gui"
 packages = [{include = "wlr_layout_ui", from = "src"}]
 license = "MIT"
 
@@ -12,16 +12,16 @@ license = "MIT"
 wlrlui = 'wlr_layout_ui:main'
 
 [tool.poetry.dependencies]
-python = "^3.8"
-pyglet = "^2.0.0"
-tomli = "^2.0.1"
-tomli-w = "^1.0.0"
+python = "^3.9"
+pyglet = "^2.1.6"
+tomli = "^2.2.1"
+tomli-w = "^1.2.0"
 
 [tool.poetry.group.dev.dependencies]
-mypy = "^1.2.0"
-vulture = "^2.7"
-pydantic = "^1.10.7"
-black = "^23.3.0"
+mypy = "^1.17.0"
+vulture = "^2.14"
+pydantic = "^2.11.7"
+black = "^25.1.0"
 
 [build-system]
 requires = ["poetry-core"]

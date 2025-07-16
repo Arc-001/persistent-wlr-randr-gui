@@ -8,16 +8,16 @@ import pyglet
 from .gui import UI
 from .profiles import load_profiles
 from .screens import displayInfo, load
-from .settings import LEGACY, PROG_NAME, UI_RATIO, reload_pre_commands
+from .settings import PROG_NAME, UI_RATIO, reload_pre_commands
 from .types import Mode
 from .utils import Rect, get_size, make_command
 
-try:
-    import setproctitle
+# try:
+#     import setproctitle
 
-    setproctitle.setproctitle(PROG_NAME)
-except ImportError:
-    pass
+#     setproctitle.setproctitle(PROG_NAME)
+# except ImportError:
+#     pass
 
 
 def apply_profile(profile: list[dict[str, float | bool | str]]):
@@ -26,19 +26,19 @@ def apply_profile(profile: list[dict[str, float | bool | str]]):
     rects = []
     for di in displayInfo:
         si = screen_info[di.uid]
-        di.scale = cast(float | int, si.get("scale", 1))
-        di.transform = cast(int, si.get("transform", 0))
-        di.active = cast(bool, si.get("active", False))
+        di.scale = cast("float | int", si.get("scale", 1))
+        di.transform = cast("int", si.get("transform", "normal"))
+        di.active = cast("bool", si.get("active", False))
         if di.active:
             w, h = get_size(
-                cast(int, si["width"]), cast(int, si["height"]), cast(float, si.get("scale", 1)), cast(int, si.get("transform", 0))
+                cast("int", si["width"]), cast("int", si["height"]), cast("float", si.get("scale", 1)), cast(int, si.get("transform", "normal"))  # noqa: E501, TC006
             )
-            di.mode = Mode(w, h, cast(float, si["freq"]))
-            rects.append(Rect(int(si["x"]), -int(si["y"]) - h, w, h))
+            di.mode = Mode((int)(w), (int)(h), cast("float", si["freq"]))
+            rects.append(Rect(int(si["x"]), -int(si["y"]) - h, w, h))  # type: ignore
         else:
             rects.append(Rect(0, 0, 0, 0))  # width & height not used
 
-    cmd = make_command(displayInfo, rects, not LEGACY)
+    cmd = make_command(displayInfo, rects)
     time.sleep(0.5)
     if os.system(cmd):
         print("Failed applying the layout")

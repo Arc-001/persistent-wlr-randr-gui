@@ -4,10 +4,10 @@ from .types import Rect, Screen
 
 config = {"hyprland": False}
 
-hex_re = re.compile("^[0-9x]+$")
+hex_re = re.compile(r"^[0-9x]+$")
 
 
-def get_size(width: int, height: int, scale: float, transform: int, glob_scale: float = 1):
+def get_size(width: int, height: int, scale: float, transform: str, glob_scale: float = 1):
     w, h = (
         ((width / glob_scale) / scale),
         ((height / glob_scale) / scale),
@@ -29,41 +29,34 @@ def simplify_model_name(name):
     return " ".join(words)
 
 
-def make_command(screens: list[Screen], rects: list[Rect], wayland=True) -> str:
-    cmd = make_command_hyprland(screens, rects) if wayland and config.get("hyprland") else make_command_legacy(screens, rects, wayland)
+def make_command(screens: list[Screen], rects: list[Rect]) -> str:
+    cmd = make_command_legacy(screens, rects)
     return cmd
 
 
-def make_command_hyprland(screens: list[Screen], rects: list[Rect]) -> str:
+def make_command_legacy(screens: list[Screen], rects: list[Rect]) -> str:
     screens_rect = rects.copy()
     trim_rects_flip_y(screens_rect)
-    command = ['hyprctl --batch "']
-
-    for screen, rect in zip(screens, screens_rect):
-        if not screen.active:
-            command.append(f"keyword monitor {screen.uid},disable ;")
-            continue
-        command.append(
-            f"keyword monitor {screen.uid},{screen.mode},{int(rect.x)}x{int(rect.y)},{screen.scale:.6f},transform,{screen.transform} ;"
-        )
-
-    cmd = " ".join([*command, '"'])
-    return cmd
-
-
-def make_command_legacy(screens: list[Screen], rects: list[Rect], wayland=False) -> str:
-    screens_rect = rects.copy()
-    trim_rects_flip_y(screens_rect)
-    command = ["wlr-randr" if wayland else "xrandr"]
+    command = ["wlr-randr"]
 
     for screen, rect in zip(screens, screens_rect):
         if not screen.active:
             command.append(f"--output {screen.uid} --off")
             continue
         assert screen.mode
-        sep = "," if wayland else "x"
-        mode = f"{int(screen.mode.width)}x{int(screen.mode.height)}"
-        command.append(f"--output {screen.uid} --on --pos {int(rect.x)}{sep}{int(rect.y)} --mode {mode}")
+        sep = ","
+        mode = f"{int(screen.mode.width)}x{int(screen.mode.height)}@{screen.mode.freq}"
+        transform_text = [
+            "normal",
+            "90",
+            "180",
+            "270",
+            "flipped",
+            "flipped-90",
+            "flipped-180",
+            "flipped-270"
+        ]
+        command.append(f"--output {screen.uid} --on --pos {int(rect.x)}{sep}{int(rect.y)} --mode {mode} --scale {screen.scale} --transform {transform_text[screen.transform]}")  # noqa: E501
 
     cmd = " ".join(command)
     return cmd

@@ -22,53 +22,11 @@ def _parseMode(txt):
     return (int(x), int(y), float(freq[:-2]))
 
 
-def load_from_hyprctl():
-    monitors = json.loads(subprocess.getoutput("hyprctl -j monitors all"))
-    for monitor in monitors:
-        modes = [Mode(*_parseMode(m)) for m in monitor["availableModes"]]
-        cur_mode = "%dx%d@%.2fHz" % (
-            monitor["width"],
-            monitor["height"],
-            monitor["refreshRate"],
-        )
-        modes_str = [repr(m) for m in modes]
-        try:
-            idx = modes_str.index(cur_mode)
-        except (IndexError, ValueError):
-            idx = modes_str.index(difflib.get_close_matches(cur_mode, modes_str)[0])
-        current_screen = Screen(
-            uid=monitor["name"],
-            name=monitor["description"],
-            active=bool(monitor["activeWorkspace"]["name"]),  # NOTE: move to "disabled" later
-            scale=monitor["scale"],
-            position=(monitor["x"], monitor["y"]),
-            available=modes,
-            mode=modes[idx],
-            transform=monitor["transform"],
-        )
-        displayInfo.append(current_screen)
-
-
 def load():
     if displayInfo:
         displayInfo.clear()
 
-    try:
-        data = json.loads(subprocess.getoutput("hyprctl -j version"))
-        version = data["tag"] or data["version"]
-        version = (version[1:] if version.startswith("v") else version).split(".")
-        major = int(version[0])
-        minor = int(version[1])
-        new_hyprland = (major == 0 and minor >= 37) or major > 0
-    except (KeyError, json.JSONDecodeError, ValueError):
-        new_hyprland = not LEGACY
-
-    if new_hyprland:
-        config["hyprland"] = True
-        load_from_hyprctl()
-        return
-
-    out = subprocess.getoutput("xrandr" if LEGACY else "wlr-randr")
+    out = subprocess.getoutput("wlr-randr")
     current_screen: None | Screen = None
     mode_mode = False
     for line in out.splitlines():
