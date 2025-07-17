@@ -1,15 +1,10 @@
-import difflib
 import json
-import os
 import re
 import subprocess
 
 from .types import Mode, Screen
-from .utils import config
 
-__all__ = ["LEGACY", "Mode", "Screen", "load"]
-
-LEGACY = not os.environ.get("WAYLAND_DISPLAY", False)
+__all__ = ["Mode", "Screen", "load"]
 MODE_RE = re.compile(r"^(?P<width>\d+)x(?P<height>\d+)(?P<x>[+-]\d+)(?P<y>[+-]\d+)$")
 
 
@@ -26,12 +21,14 @@ def load():
     if displayInfo:
         displayInfo.clear()
 
-    out = subprocess.getoutput("wlr-randr")
-    current_screen: None | Screen = None
+    out = subprocess.getstatusoutput("wlr-randr")
+    if out[0] != 0:
+        print("persistent-wlr-randr-gui was unable to run the command \"wlr-randr\", are you sure it's installed?")
+        print("output when running wlr-randr is below:")
+        raise ValueError(out[1])
+    current_screen: Screen = None
     mode_mode = False
-    for line in out.splitlines():
-        if LEGACY and ("disconnected" in line or line.startswith("Screen")):
-            continue
+    for line in out[1].splitlines():
         if line[0] != " ":
             uid, name = line.split(None, 1)
             current_screen = Screen(uid=uid, name=name.strip('"'))
@@ -54,35 +51,25 @@ def load():
                 mode_mode = False
             assert current_screen
             sline = line.strip()
-            if LEGACY:
-                res, freq = sline.split(None, 1)
-                if not res.endswith("i"):
+            if mode_mode:
+                try:
+                    res, freq = sline.split(",", 1)
+                except ValueError:
+                    print(f"Unable to parse: {sline}")
+                else:
+                    res = res.split(None, 1)[0]
                     res = tuple(int(x) for x in res.split("x"))
-                    current = "*" in freq
-                    freq = freq.split(None, 1)[0].rstrip("*+")
+                    freq, comment = freq.strip().split(None, 1)
                     current_screen.available.append(Mode(res[0], res[1], float(freq)))
-                    if current:
+                    if "current" in comment:
                         current_screen.mode = current_screen.available[-1]
-            else:
-                if mode_mode:
-                    try:
-                        res, freq = sline.split(",", 1)
-                    except ValueError:
-                        print(f"Unable to parse: {sline}")
-                    else:
-                        res = res.split(None, 1)[0]
-                        res = tuple(int(x) for x in res.split("x"))
-                        freq, comment = freq.strip().split(None, 1)
-                        current_screen.available.append(Mode(res[0], res[1], float(freq)))
-                        if "current" in comment:
-                            current_screen.mode = current_screen.available[-1]
 
-                elif sline.startswith("Modes:"):
-                    mode_mode = True
-                elif sline.startswith("Enabled"):
-                    current_screen.active = "yes" in sline
-                elif sline.startswith("Position"):
-                    current_screen.position = tuple(int(x) for x in sline.split(":")[1].strip().split(","))
+            elif sline.startswith("Modes:"):
+                mode_mode = True
+            elif sline.startswith("Enabled"):
+                current_screen.active = "yes" in sline
+            elif sline.startswith("Position"):
+                current_screen.position = tuple(int(x) for x in sline.split(":")[1].strip().split(","))
     try:
         monitors = json.loads(subprocess.getoutput("hyprctl -j monitors all"))
     except json.decoder.JSONDecodeError:
