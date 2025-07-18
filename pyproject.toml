@@ -4,7 +4,7 @@ requires-python   = ">= 3.13.5"
 description = "A tiny GUI to configure screen layouts on wlroots and smithay based compositors"
 authors = [{ name = "Alice Alysia" }]
 urls ={ homepage = "https://github.com/alicealysia/persistent-wlr-randr-gui" }
-version = "2.0.0a"
+version = "2.0.0a1"
 readme = "README.md"
 license = "MIT"
 scripts = { wlrlui = 'wlr_layout_ui:main' }
