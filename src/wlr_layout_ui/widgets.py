@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 
+import pyglet
 from pyglet.shapes import Triangle
 
 from .factories import makeLabel, makeRectangle
@@ -11,7 +12,7 @@ from .utils import Rect, brighten
 class Widget:
     """Base class for all widgets."""
 
-    def __init__(self, rect, style):
+    def __init__(self, rect: Rect, style):
         self.rect = rect
         self.style = style if style else Style()
         self.valign = "bottom"
@@ -49,7 +50,7 @@ class Widget:
     def unfocus(self):
         return
 
-    def draw(self, cursor):
+    def draw(self, cursor) -> None:
         raise NotImplementedError()
 
     def draw_shadow(self, offX=3, offY=3, color=(0, 0, 0, 80), radius=0):
@@ -68,8 +69,8 @@ class Widget:
     def contains(self, x, y):
         return self.rect.contains(x, y)
 
-    def on_mouse_press(self, x, y, button, modifiers):
-        return
+    def on_mouse_press(self, x, y, button, modifiers) -> bool:
+        return False
 
 
 class _Box(Widget):
@@ -96,9 +97,7 @@ class _Box(Widget):
             w.unfocus()
 
     def on_mouse_press(self, x, y, button, modifiers):
-        for w in self.widgets:
-            if w.contains(x, y) and w.on_mouse_press(x, y, button, modifiers):
-                return True
+        return any(w.contains(x, y) and w.on_mouse_press(x, y, button, modifiers) for w in self.widgets)
 
     def draw(self, cursor):
         self.draw_shadow(0, 0, (255, 255, 255, 80), radius=0)
@@ -311,6 +310,7 @@ class Dropdown(Widget):  # {{{
             if old_index != self.selected_index and self.onchange:
                 self.onchange()
             return True
+        return False
 
     def get_value(self):
         return self.get_selected_option()["value"]
@@ -348,6 +348,8 @@ class Spacer(Widget):  # {{{
 
 
 class Button(Widget):  # {{{
+    text: pyglet.text.Label
+
     def __init__(
         self,
         rect,
@@ -397,6 +399,7 @@ class Button(Widget):  # {{{
             self.toggled = not self.toggled
             self.action()
             return True
+        return False
 
 
 # }}}

@@ -8,7 +8,7 @@ import pyglet
 from .gui import UI
 from .profiles import load_profiles
 from .screens import displayInfo, load
-from .settings import PROG_NAME, UI_RATIO, reload_pre_commands
+from .settings import UI_RATIO, reload_pre_commands
 from .types import Mode
 from .utils import Rect, get_size, make_command
 
@@ -31,7 +31,10 @@ def apply_profile(profile: list[dict[str, float | bool | str]]):
         di.active = cast("bool", si.get("active", False))
         if di.active:
             w, h = get_size(
-                cast("int", si["width"]), cast("int", si["height"]), cast("float", si.get("scale", 1)), cast(int, si.get("transform", "normal"))  # noqa: E501, TC006
+                cast("int", si["width"]),
+                cast("int", si["height"]),
+                cast("float", si.get("scale", 1)),
+                cast(int, si.get("transform", "normal"))
             )
             di.mode = Mode((int)(w), (int)(h), cast("float", si["freq"]))
             rects.append(Rect(int(si["x"]), -int(si["y"]) - h, w, h))  # type: ignore
@@ -97,6 +100,5 @@ Options:
 
     width = max_width + average_width * 2
     height = max_height + average_height * 2
-    window = UI(width, height)
-    window.set_wm_class(PROG_NAME)
+    window = UI(width, height)  # noqa: F841
     pyglet.app.run()

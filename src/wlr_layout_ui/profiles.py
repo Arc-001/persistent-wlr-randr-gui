@@ -1,14 +1,14 @@
-import os
+from pathlib import Path
 
 import tomli
 import tomli_w
 
-cfg_file = os.path.expanduser("~/.config/wlrlui.toml")
+cfg_file = Path("~/.config/wlrlui.toml").expanduser()
 
 
 def load_profiles():
     try:
-        return tomli.load(open(cfg_file, "rb"))
+        return tomli.load(Path.open(cfg_file, "rb"))
     except FileNotFoundError:
         return {}
 
@@ -21,5 +21,5 @@ def save_profile(name: str, profile_data):
 
     profiles[name] = profile_data
 
-    with open(cfg_file, "wb") as f:
+    with Path.open(cfg_file, "wb") as f:
         tomli_w.dump(profiles, f)

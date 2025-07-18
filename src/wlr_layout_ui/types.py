@@ -15,9 +15,9 @@ class Mode:
 class Screen:
     uid: str
     name: str
+    mode: Mode
     active: bool = False
     position: tuple[int, int] = (0, 0)
-    mode: Mode | None = None
     scale: float = 1
     available: list[Mode] = field(default_factory=list)
     transform: int = 0

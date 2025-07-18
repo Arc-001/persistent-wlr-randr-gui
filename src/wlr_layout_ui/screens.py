@@ -26,12 +26,12 @@ def load():
         print("persistent-wlr-randr-gui was unable to run the command \"wlr-randr\", are you sure it's installed?")
         print("output when running wlr-randr is below:")
         raise ValueError(out[1])
-    current_screen: Screen = None
+    current_screen: Screen | None = None
     mode_mode = False
     for line in out[1].splitlines():
         if line[0] != " ":
             uid, name = line.split(None, 1)
-            current_screen = Screen(uid=uid, name=name.strip('"'))
+            current_screen = Screen(uid=uid, name=name.strip('"'), mode=Mode(640, 480, 60))
             try:
                 chim = name.split("(", 1)[0].strip().rsplit(None, 1)[1]
             except IndexError:

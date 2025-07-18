@@ -19,6 +19,10 @@ def limit_size(text):
     return text
 
 
+type rgb = tuple[int, int, int]
+type rgba = tuple[int, int, int, int]
+
+
 class GuiScreen(Widget):
     """A widget representing a screen."""
 
@@ -27,7 +31,7 @@ class GuiScreen(Widget):
 
     __str__ = __repr__
 
-    all_colors: tuple[tuple[int, int, int], ...] = (
+    all_colors: tuple[rgb, ...] = (
         (108, 158, 208),
         (126, 141, 80),
         (229, 181, 102),
@@ -37,13 +41,14 @@ class GuiScreen(Widget):
         (125, 213, 207),
         (208, 208, 208),
     )
-    cur_color = 0
+    cur_color: int = 0
+    drag_color: rgba = (0, 0, 0, 0)
 
     def __init__(
         self,
         screen: Screen,
         rect: Rect,
-        color: tuple[int, int, int] = (100, 100, 100),
+        color: rgba = (100, 100, 100, 254),
     ):
         super().__init__(rect, None)
         self.screen = screen
@@ -54,25 +59,24 @@ class GuiScreen(Widget):
 
     def genColor(self):
         if self.cur_color >= len(self.all_colors):
-            self.color = (
+            self.color: rgba = (
                 random.randint(100, 200),
                 random.randint(100, 200),
                 random.randint(100, 200),
-                255,
+                200
             )
         else:
-            self.color = [*list(self.all_colors[self.cur_color]), 255]
+            self.color = (*self.all_colors[self.cur_color], 254)
             GuiScreen.cur_color += 1
-        self.drag_color = list(self.color)
-        self.drag_color[-1] = 200
+        self.drag_color: rgba = (*self.color[0:3], 200)
 
     @property
     def current_color(self):
         """The current_color property."""
-        color = self.drag_color if self.dragging else self.color
+        color: rgba = self.drag_color if self.dragging else self.color
         if self.screen.active:
             return color
-        return [color[0] // 3, color[1] // 3, color[2] // 3, color[3]]  # type: ignore
+        return (color[0] // 3, color[1] // 3, color[2] // 3, color[3])
 
     @property
     def statusInfo(self):
@@ -104,14 +108,14 @@ class GuiScreen(Widget):
         if self.rect != self.target_rect:
             self._animation_step()
 
-        txt_color = (0, 0, 0, 200) if self.screen.active else (255, 255, 255, 120)
-        border_color = (100, 100, 155)
+        txt_color: rgba = (0, 0, 0, 200) if self.screen.active else (255, 255, 255, 120)
+        border_color: rgb = (100, 100, 155)
         if not self.screen.active:
             border_color = (70, 70, 70)
         if self.highlighted:
             border_color = (255, 201, 0)
         # draw the background
-        color = self.current_color
+        color: rgba = self.current_color
         if self.rect.contains(*cursor):
             color = brighten(color)
 

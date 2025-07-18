@@ -1,13 +1,15 @@
 import re
 
-from .types import Rect, Screen
+from .types import Mode, Rect, Screen
 
 config = {"hyprland": False}
 
 hex_re = re.compile(r"^[0-9x]+$")
 
+type rgba = tuple[int, int, int, int]
 
-def get_size(width: int, height: int, scale: float, transform: str, glob_scale: float = 1):
+
+def get_size(width: int, height: int, scale: float, transform: int, glob_scale: float = 1):
     w, h = (
         ((width / glob_scale) / scale),
         ((height / glob_scale) / scale),
@@ -39,7 +41,7 @@ def make_command_legacy(screens: list[Screen], rects: list[Rect]) -> str:
     trim_rects_flip_y(screens_rect)
     command = ["wlr-randr"]
 
-    for screen, rect in zip(screens, screens_rect):
+    for screen, rect in zip(screens, screens_rect, strict=False):
         if not screen.active:
             command.append(f"--output {screen.uid} --off")
             continue
@@ -62,7 +64,7 @@ def make_command_legacy(screens: list[Screen], rects: list[Rect]) -> str:
     return cmd
 
 
-def brighten(color):
+def brighten(color) -> rgba:
     return tuple(min(255, c + 20) for c in color)
 
 
@@ -85,10 +87,11 @@ def sorted_frequencies(modes, filter_w=None, filter_h=None):
     return lres
 
 
-def find_matching_mode(modes, res, freq):
+def find_matching_mode(modes, res, freq) -> Mode:
     for mode in modes:
         if mode.width == res[0] and mode.height == res[1] and mode.freq == freq:
             return mode
+    return Mode(640, 480, 60)
 
 
 def compute_bounding_box(rects):
