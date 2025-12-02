@@ -1,6 +1,6 @@
 # Persistent wlr-randr GUI
 
-An simple GUI to setup the screens layout based on wlr-layout-ui, providing the functionality it offers to wlr-randr.
+A simple GUI to setup the screen layout based on wlr-layout-ui, providing the functionality it offers to wlr-randr.
 
 This is part of the tweaks I'm developing for many existing wlr configuration utilities so that they can be bundled into something capable of configuring any WLR or Smithay based compositor (but will primarily be tested via niri)
 
@@ -12,7 +12,7 @@ This is part of the tweaks I'm developing for many existing wlr configuration ut
   - Layout: position, rotation, scale and flipping
   - Resolution
   - Refresh rate
-- Makes clean, easy to understand layouts, with no negative values of random offsets `</monk>`
+- Makes clean, easy to understand layouts, with no negative values or random offsets.
 
 <img width="2274" height="1316" alt="image" src="https://github.com/user-attachments/assets/918702a7-4177-401f-8dc2-4899491ce135" />
 
