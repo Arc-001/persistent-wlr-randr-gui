@@ -1,4 +1,5 @@
-import os
+import shlex
+import subprocess
 import sys
 import time
 from typing import cast
@@ -25,7 +26,10 @@ def apply_profile(profile: list[dict[str, float | bool | str]]):
     screen_info = {p["uid"]: p for p in profile}
     rects = []
     for di in displayInfo:
-        si = screen_info[di.uid]
+        si = screen_info.get(di.uid)
+        if si is None:
+            print(f"Profile has no entry for connected display {di.uid}")
+            raise SystemExit(1)
         di.scale = cast("float | int", si.get("scale", 1))
         di.transform = cast("int", si.get("transform", "normal"))
         di.active = cast("bool", si.get("active", False))
@@ -43,9 +47,10 @@ def apply_profile(profile: list[dict[str, float | bool | str]]):
 
     cmd = make_command(displayInfo, rects)
     time.sleep(0.5)
-    if os.system(cmd):
-        print("Failed applying the layout")
     print(cmd)
+    if subprocess.run(shlex.split(cmd), check=False).returncode:
+        print("Failed applying the layout")
+        raise SystemExit(1)
 
 
 def main():
@@ -65,7 +70,7 @@ def main():
                     print(f"Matched profile {key}. Applying it...")
                     apply_profile(profiles[key])
                     sys.exit(0)
-            print(f"No profile found: {sys.argv[1]}")
+            print("No profile matches the currently connected displays")
             sys.exit(1)
 
         elif sys.argv[1][0] == "-":
@@ -89,14 +94,15 @@ Options:
             apply_profile(profile)
         return
     load()
-    max_width = int(sum(max(screen.available, key=lambda mode: mode.width).width for screen in displayInfo) // UI_RATIO)
-    max_height = int(sum(max(screen.available, key=lambda mode: mode.height).height for screen in displayInfo) // UI_RATIO)
-    average_width = int(
-        sum(max(screen.available, key=lambda mode: mode.width).width for screen in displayInfo) / len(displayInfo) // UI_RATIO
-    )
-    average_height = int(
-        sum(max(screen.available, key=lambda mode: mode.height).height for screen in displayInfo) / len(displayInfo) // UI_RATIO
-    )
+    if not displayInfo:
+        print("wlr-randr reported no displays")
+        raise SystemExit(1)
+    widest = [max(screen.available, key=lambda mode: mode.width).width for screen in displayInfo]
+    tallest = [max(screen.available, key=lambda mode: mode.height).height for screen in displayInfo]
+    max_width = int(sum(widest) // UI_RATIO)
+    max_height = int(sum(tallest) // UI_RATIO)
+    average_width = int(sum(widest) / len(displayInfo) // UI_RATIO)
+    average_height = int(sum(tallest) / len(displayInfo) // UI_RATIO)
 
     width = max_width + average_width * 2
     height = max_height + average_height * 2

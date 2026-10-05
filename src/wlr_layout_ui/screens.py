@@ -29,6 +29,8 @@ def load():
     current_screen: Screen | None = None
     mode_mode = False
     for line in out[1].splitlines():
+        if not line.strip():
+            continue
         if line[0] != " ":
             uid, name = line.split(None, 1)
             current_screen = Screen(uid=uid, name=name.strip('"'), mode=Mode(640, 480, 60))
@@ -77,5 +79,8 @@ def load():
     else:
         monitors = {o["name"]: o for o in monitors}
         for info in displayInfo:
-            info.active = monitors[info.uid]["activeWorkspace"]["id"] >= 0
-            info.scale = monitors[info.uid]["scale"]
+            monitor = monitors.get(info.uid)
+            if monitor is None:
+                continue
+            info.active = monitor["activeWorkspace"]["id"] >= 0
+            info.scale = monitor["scale"]

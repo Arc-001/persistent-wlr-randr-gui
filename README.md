@@ -37,11 +37,11 @@ This is part of the tweaks I'm developing for many existing wlr configuration ut
 ## Installation
 
 1. Either download the latest release or build the whl yourself
-2. `pipx install ~/path/to/persistent-wlr-randr-ui-2.0.0a0.tar.gz`
+2. `pipx install ~/path/to/persistent_wlr_randr_ui-2.0.0a1.tar.gz` (or the `.whl` from `dist/`)
 3. it's also recommended that you copy the file "wlr-layout-ui.desktop" to ~/.local/share/applications
 
-This will create a "myenv" folder with the app installed.
-You will need to run the app with the full path to it (/path/to/myenv/bin/wlrlui).
+`pipx` installs the app into its own isolated environment and puts `wlrlui` on your `PATH` (usually `~/.local/bin`).
+If the command isn't found, run `pipx ensurepath` and restart your shell.
 
 ## Usage
 
