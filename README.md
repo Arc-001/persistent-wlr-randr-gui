@@ -6,7 +6,9 @@ This is part of the tweaks I'm developing for many existing wlr configuration ut
 
 ## Features
 
-- Load and save profiles
+- Load, save and delete profiles
+- Shows your current layout when it starts, and tells you which saved profile (if any) it matches
+- Remembers the last layout you applied and restores it after a reboot
 - No grid snapping, but anchors in a smart way on overlap
 - Set the screen settings
   - Layout: position, rotation, scale and flipping
@@ -66,6 +68,33 @@ To load the profile called "cinema":
 ```bash
 wlrlui cinema
 ```
+
+### Persist across reboots
+
+`wlr-randr` changes are lost when the session ends. Every layout you confirm in the GUI (or apply from the CLI) is
+remembered in `~/.local/state/wlrlui/last.toml`, and can be re-applied on login:
+
+```bash
+wlrlui -r          # or --restore
+```
+
+If the connected displays differ from the last layout, it falls back to the first saved profile matching them.
+
+To run it automatically, either press **Persist** in the GUI (or run `wlrlui --install-autostart`, undo with
+`wlrlui --remove-autostart`) to create an XDG autostart entry, or start it from your compositor's config:
+
+```kdl
+// niri: ~/.config/niri/config.kdl
+spawn-at-startup "wlrlui" "--restore"
+```
+
+```ini
+# hyprland: ~/.config/hypr/hyprland.conf
+exec-once = wlrlui --restore
+```
+
+The XDG autostart entry only runs if your session starts autostart entries (e.g. `niri-session` with
+systemd's xdg-autostart); otherwise use the compositor snippets above.
 
 ### Magic layout
 

@@ -1,8 +1,9 @@
+import contextlib
 import json
 import re
 import subprocess
 
-from .types import Mode, Screen
+from .types import TRANSFORMS, Mode, Screen
 
 __all__ = ["Mode", "Screen", "load"]
 MODE_RE = re.compile(r"^(?P<width>\d+)x(?P<height>\d+)(?P<x>[+-]\d+)(?P<y>[+-]\d+)$")
@@ -72,6 +73,13 @@ def load():
                 current_screen.active = "yes" in sline
             elif sline.startswith("Position"):
                 current_screen.position = tuple(int(x) for x in sline.split(":")[1].strip().split(","))
+            elif sline.startswith("Transform:"):
+                name = sline.split(":", 1)[1].strip()
+                if name in TRANSFORMS:
+                    current_screen.transform = TRANSFORMS.index(name)
+            elif sline.startswith("Scale:"):
+                with contextlib.suppress(ValueError):
+                    current_screen.scale = float(sline.split(":", 1)[1])
     try:
         monitors = json.loads(subprocess.getoutput("hyprctl -j monitors all"))
     except json.decoder.JSONDecodeError:

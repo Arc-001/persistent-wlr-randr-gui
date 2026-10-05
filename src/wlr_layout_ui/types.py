@@ -1,5 +1,8 @@
 from dataclasses import dataclass, field
 
+# wlr-randr transform names, indexed by the transform number used throughout the app
+TRANSFORMS = ("normal", "90", "180", "270", "flipped", "flipped-90", "flipped-180", "flipped-270")
+
 
 @dataclass
 class Mode:

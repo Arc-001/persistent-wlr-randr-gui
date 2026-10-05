@@ -1,6 +1,6 @@
 import re
 
-from .types import Mode, Rect, Screen
+from .types import TRANSFORMS, Mode, Rect, Screen
 
 config = {"hyprland": False}
 
@@ -23,6 +23,18 @@ def get_screen_size(screen: Screen, scale: float = 1):
     """Get the size of the window based on the screen size and UI_RATIO."""
     assert screen.mode
     return get_size(screen.mode.width, screen.mode.height, screen.scale, screen.transform, scale)
+
+
+def current_rects(screens: list[Screen]) -> list[Rect]:
+    """Layout rectangles (y axis pointing up, unscaled) for the screens' real current positions."""
+    rects = []
+    for screen in screens:
+        if screen.active and screen.mode:
+            w, h = get_screen_size(screen)
+            rects.append(Rect(int(screen.position[0]), -int(screen.position[1]) - int(h), int(w), int(h)))
+        else:
+            rects.append(Rect(0, 0, 0, 0))
+    return rects
 
 
 def simplify_model_name(name):
@@ -48,17 +60,7 @@ def make_command_legacy(screens: list[Screen], rects: list[Rect]) -> str:
         assert screen.mode
         sep = ","
         mode = f"{int(screen.mode.width)}x{int(screen.mode.height)}@{screen.mode.freq}"
-        transform_text = [
-            "normal",
-            "90",
-            "180",
-            "270",
-            "flipped",
-            "flipped-90",
-            "flipped-180",
-            "flipped-270"
-        ]
-        command.append(f"--output {screen.uid} --on --pos {int(rect.x)}{sep}{int(rect.y)} --mode {mode} --scale {screen.scale} --transform {transform_text[screen.transform]}")  # noqa: E501
+        command.append(f"--output {screen.uid} --on --pos {int(rect.x)}{sep}{int(rect.y)} --mode {mode} --scale {screen.scale} --transform {TRANSFORMS[screen.transform]}")  # noqa: E501
 
     cmd = " ".join(command)
     return cmd
