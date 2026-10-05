@@ -1,5 +1,8 @@
 from dataclasses import dataclass, field
 
+# wlr-randr transform names, indexed by the transform number used throughout the app
+TRANSFORMS = ("normal", "90", "180", "270", "flipped", "flipped-90", "flipped-180", "flipped-270")
+
 
 @dataclass
 class Mode:
@@ -34,7 +37,7 @@ class Rect:  # {{{
     height: int
 
     def __hash__(self):
-        return int("%d%d%d%d" % self.asTuple())  # noqa: UP031
+        return hash(self.asTuple())
 
     @property
     def topleft(self):

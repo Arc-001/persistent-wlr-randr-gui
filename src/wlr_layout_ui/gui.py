@@ -9,12 +9,14 @@ import pyglet
 from pyglet.window.xlib import XlibWindow
 
 from .displaywidget import GuiScreen
-from .profiles import load_profiles, save_profile
+from .profiles import delete_profile, load_profiles, save_profile
 from .screens import displayInfo, load
 from .settings import ALLOW_DESELECT, FONT, PROG_NAME, UI_RATIO, WINDOW_MARGIN, reload_pre_commands
+from .state import autostart_enabled, save_last_layout, set_autostart
 from .utils import (
     Rect,
     compute_bounding_box,
+    current_rects,
     find_matching_mode,
     get_screen_size,
     make_command,
@@ -55,6 +57,10 @@ class UI(XlibWindow):
         self.text_input: str | None = None
         self.error_message = ""
         self.error_message_duration = 0
+        self.message_is_error = True
+        self.current_profile: str | None = None
+        self.pending_cmd = ""
+        self.pending_layout: list[dict] = []
         self.require_selected_item: set[Widget] = set()  # Items that can't be displayed without a selection
 
         but_w = 120
@@ -83,7 +89,22 @@ class UI(XlibWindow):
             style=act_but_style,
             action=self.action_load_selected_profile,
         )
+        p_del_but = Button(
+            ref_rect.copy(),
+            label="Delete",
+            style=s_but_style,
+            action=self.action_delete_profile,
+        )
         self.profile_list = Dropdown(ref_rect.copy(), label="Profiles", options=[])
+        self.persist_but = Button(
+            ref_rect.copy(),
+            label="Persist: Off",
+            toggled_label="Persist: On",
+            action=self.action_toggle_persist,
+            style=Style(highlight=(139, 233, 202), color=(200, 200, 200)),
+            togglable=True,
+        )
+        self.persist_but.toggled = autostart_enabled()
 
         self.sidepanel = VBox(
             widgets=[
@@ -99,6 +120,7 @@ class UI(XlibWindow):
                     action=self.action_reload,
                     style=main_but_style,
                 ),
+                self.persist_but,
                 Spacer(
                     ref_rect.copy(),
                     label="Profiles:",
@@ -107,6 +129,7 @@ class UI(XlibWindow):
                 p_new_but,
                 p_save_but,
                 p_load_but,
+                p_del_but,
                 self.profile_list,
             ]
         )
@@ -205,11 +228,8 @@ class UI(XlibWindow):
         self.on_resize(width, height)
         # self.set_current_modes_as_ref()
 
-        """Set original cmd to allow reverting the selected mode."""
-        self.original_cmd = make_command(
-            [s.screen for s in self.gui_screens],
-            [s.rect.scaled(UI_RATIO) for s in self.gui_screens]
-        )
+        self.snapshot_original()
+        self.detect_current_profile()
 
     @property
     def widgets(self):
@@ -220,11 +240,57 @@ class UI(XlibWindow):
         """Set an error message to be displayed for a certain duration."""
         self.error_message = message
         self.error_message_duration = duration
+        self.message_is_error = True
+
+    def set_notice(self, message, duration=200):
+        """Set an informational message to be displayed for a certain duration."""
+        self.set_error(message, duration)
+        self.message_is_error = False
+
+    def snapshot_original(self):
+        """Remember the real current layout, to allow reverting an unconfirmed one."""
+        screens = [s.screen for s in self.gui_screens]
+        self.original_cmd = make_command(screens, current_rects(screens))
 
     def sync_profiles(self):
         """Load profiles and update the profile list."""
+        selected = self.profile_list.get_selected_option()["name"] if self.profile_list.options else None
         self.profiles = load_profiles()
         self.profile_list.options = [{"name": k, "value": v} for k, v in self.profiles.items()]
+        names = [o["name"] for o in self.profile_list.options]
+        self.profile_list.selected_index = names.index(selected) if selected in names else 0
+
+    def layout_matches(self, profile) -> bool:
+        """Return whether the layout currently shown is the one described by the profile."""
+        wanted = {entry["uid"]: entry for entry in profile}
+        have = self.get_profile_data()
+        if set(wanted) != {entry["uid"] for entry in have}:
+            return False
+        for entry in have:
+            other = wanted[entry["uid"]]
+            if entry["active"] != other.get("active", False):
+                return False
+            if not entry["active"]:
+                continue
+            if (entry["width"], entry["height"]) != (other.get("width"), other.get("height")):
+                return False
+            if abs(entry["freq"] - other.get("freq", 0)) > 0.01 or abs(entry["scale"] - other.get("scale", 1)) > 0.01:
+                return False
+            if entry["transform"] != other.get("transform", 0):
+                return False
+            # positions are edited on a UI_RATIO-times smaller canvas, so allow that much rounding
+            if abs(entry["x"] - other["x"]) > UI_RATIO or abs(entry["y"] - other["y"]) > UI_RATIO:
+                return False
+        return True
+
+    def detect_current_profile(self):
+        """Find which saved profile (if any) matches the layout currently in use, and select it."""
+        self.current_profile = None
+        for index, option in enumerate(self.profile_list.options):
+            if self.layout_matches(option["value"]):
+                self.current_profile = option["name"]
+                self.profile_list.selected_index = index
+                break
 
     def set_text_input(self, action):
         """Set the text input to be validated by the given action."""
@@ -360,8 +426,10 @@ class UI(XlibWindow):
             return f'Press ENTER to validate "{self.text_input}"'
         elif self.selected_item:
             return simplify_model_name(self.selected_item.screen.name)
+        elif self.current_profile:
+            return f'Current layout: profile "{self.current_profile}" - select a monitor to edit it'
         else:
-            return "Select a monitor to edit its settings"
+            return "Current layout is not saved as a profile - select a monitor to edit it"
 
     # }}}
     # Event handler methods {{{
@@ -375,8 +443,7 @@ class UI(XlibWindow):
         if self.text_input is None:
             if symbol == KEY_RETURN:
                 if self.confirmation_needed:
-                    self.confirmation_needed = False
-                    # self.set_current_modes_as_ref()
+                    self.confirm_layout()
                 else:
                     self.action_save_layout()
             elif symbol == KEY_ESCAPE and self.confirmation_needed:
@@ -460,6 +527,8 @@ class UI(XlibWindow):
         if delay >= CONFIRM_DELAY:
             os.system(self.original_cmd)
             self.confirmation_needed = False
+            self.reset_sel()
+            self.set_error("Not confirmed in time - reverted to the previous layout")
         else:
             color = (200, 200, 200, 255)
             w, h = self.get_size()
@@ -552,7 +621,7 @@ class UI(XlibWindow):
                 self.error_message = ""
             else:
                 text = self.error_message
-                color = (250, 100, 100, 255)
+                color = (250, 100, 100, 255) if self.message_is_error else (139, 233, 202, 255)
         status_label = pyglet.text.Label(
             text if text else self.get_status_text(),
             x=WINDOW_MARGIN,
@@ -571,6 +640,9 @@ class UI(XlibWindow):
         load()
         GuiScreen.cur_color = 0
         self.load_screens()
+        self.center_layout(immediate=True)
+        self.snapshot_original()
+        self.detect_current_profile()
 
     def action_reload(self):
         """Reload the screens."""
@@ -602,17 +674,50 @@ class UI(XlibWindow):
     def action_save_new_profile(self):
         """Save a new profile."""
         assert self.text_input
-        save_profile(self.text_input, self.get_profile_data())
+        name = self.text_input
+        save_profile(name, self.get_profile_data())
         self.sync_profiles()
+        self.profile_list.selected_index = [o["name"] for o in self.profile_list.options].index(name)
+        self.current_profile = name
         self.text_input = None
+        self.set_notice(f'Saved profile "{name}"')
 
     def action_save_profile(self):
         """Save the current profile."""
         if self.profile_list.options:
-            save_profile(self.profile_list.get_selected_option()["name"], self.get_profile_data())
+            name = self.profile_list.get_selected_option()["name"]
+            save_profile(name, self.get_profile_data())
             self.sync_profiles()
+            self.current_profile = name
+            self.set_notice(f'Saved profile "{name}"')
         else:
             self.set_error("No profile selected!")
+
+    def action_delete_profile(self):
+        """Delete the selected profile."""
+        if not self.profile_list.options:
+            self.set_error("No profile selected!")
+            return
+        name = self.profile_list.get_selected_option()["name"]
+        delete_profile(name)
+        self.sync_profiles()
+        if self.current_profile == name:
+            self.current_profile = None
+        self.set_notice(f'Deleted profile "{name}"')
+
+    def action_toggle_persist(self):
+        """Enable or disable restoring the last applied layout on login."""
+        enabled = self.persist_but.toggled
+        try:
+            set_autostart(enabled=enabled)
+        except OSError as e:
+            self.persist_but.toggled = not enabled
+            self.set_error(f"Could not update autostart: {e.strerror or e}")
+            return
+        if enabled:
+            self.set_notice("The last applied layout will be restored on login")
+        else:
+            self.set_notice("Layout will no longer be restored on login")
 
     def action_load_selected_profile(self):
         """Load the selected profile."""
@@ -668,11 +773,28 @@ class UI(XlibWindow):
             [s.screen for s in self.gui_screens],
             [s.rect.scaled(UI_RATIO) for s in self.gui_screens],
         )
+        self.pending_layout = self.get_profile_data()
         if os.system(cmd):
             self.set_error("Failed applying the layout")
         print(cmd)
 
+        self.pending_cmd = cmd
         self.confirmation_needed = time.time()
+
+    def confirm_layout(self):
+        """Keep the layout that was just applied, and remember it so it survives a reboot."""
+        self.confirmation_needed = False
+        self.original_cmd = self.pending_cmd
+        try:
+            save_last_layout(self.pending_layout)
+        except OSError as e:
+            self.set_error(f"Layout applied, but could not be remembered: {e.strerror or e}")
+            return
+        self.detect_current_profile()
+        if self.persist_but.toggled:
+            self.set_notice("Layout applied and saved - it will be restored on login")
+        else:
+            self.set_notice('Layout applied and saved - turn on "Persist" to restore it on login')
 
     def action_toggle_screen_power(self):
         """Toggle the power of the selected screen."""
